@@ -1,9 +1,24 @@
 @import "./base.css";
 
 #app {
-  /* max-width: 1280px; */
   margin: 0 auto;
-  /* padding: 2rem; */
-
   font-weight: normal;
+}
+
+.tippy-box {
+  background: #1a1a1a;
+  border: 2px solid #6c6c6c;
+  border-radius: 0 5px 5px 5px !important;
+  padding: 0 !important;
+  height: 100%;
+  width: 100%;
+  font-size: 16px;
+  color: #969696;
+  font-weight: 400;
+  text-transform: uppercase;
+  transition: opacity 0.1s;
+}
+
+.tippy-content {
+  /* padding: 7px 12px !important; */
 }

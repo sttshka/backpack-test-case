@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import dayjs from "dayjs";
-import { computed, onMounted, ref } from "vue";
+import { computed, handleError, onMounted, ref } from "vue";
 import type { Ref } from "vue";
 import IconClose from "./icons/IconClose.vue";
 import IconCooldown from "./icons/IconCooldown.vue";
@@ -111,6 +111,10 @@ const getCooldownRemaining = (item) => {
 
   return cooldownsMap.value.get(item.id)?.value ?? null;
 };
+
+function getName(item) {
+  return item.name;
+}
 </script>
 
 <template>
@@ -125,7 +129,11 @@ const getCooldownRemaining = (item) => {
       <div class="backpack__inventory">
         <div class="backpack__filters-header">{{ filterTitle }}</div>
         <div class="backpack__grid">
-          <div v-for="item in mergedCells" class="backpack-item">
+          <div
+            v-for="item in mergedCells"
+            class="backpack-item"
+            v-tippy="getName(item)"
+          >
             <template v-if="item.id">
               <div
                 class="backpack-item__icon"
