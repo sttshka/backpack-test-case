@@ -1,36 +1,27 @@
 <script setup lang="ts">
-import dayjs from "dayjs";
-import { computed, handleError, onMounted, ref } from "vue";
 import type { Ref } from "vue";
+import { computed, onMounted, ref } from "vue";
+import { useRoute } from "vue-router";
+import dayjs from "dayjs";
+
+import { ItemType, filterTabs, Product } from "../types/handbooks";
+import { getInventoryState } from "../api";
+
 import IconClose from "./icons/IconClose.vue";
-import IconCooldown from "./icons/IconCooldown.vue";
 
 import BackpackFilters from "./BackpackFilters.vue";
-import { FilterType, filterTabs } from "../types/handbooks";
-import { useRoute, useRouter } from "vue-router";
+import BackpackItem from "./BackpackItem.vue";
 
-const currentFilter: Ref<FilterType> = ref("all");
+const currentFilter: Ref<ItemType> = ref("all");
 
 const filterTitle = computed(
   () =>
     filterTabs.find((tab) => tab.code === currentFilter.value)?.title ?? "Пусто"
 );
 
-const API_URL =
-  "https://us-central1-seven-seven-bit-inhouse-helper.cloudfunctions.net/vueDevTestTask-getInventoryState";
-async function getBackpackItems(caseNumber) {
-  return fetch(`${API_URL}?case=${caseNumber}`);
-}
-
 const backpackCells = ref([]);
-
 const emptyCells = ref([]);
 fillCells();
-function fillCells() {
-  for (let i = 0; i < 40; i++) {
-    emptyCells.value.push({ id: null });
-  }
-}
 
 const filteredCells = computed(() => {
   if (currentFilter.value === "all") {
@@ -43,25 +34,32 @@ const filteredCells = computed(() => {
 });
 
 const mergedCells = computed(() => {
+  if (filteredCells.value.length >= emptyCells.value.length) {
+    const filteredCellsLength = filteredCells.value.length;
+    const intMultipleFive = Math.floor((filteredCells.value.length / 5) * 5);
+
+    if (filteredCellsLength === intMultipleFive) {
+      const arr = [];
+      for (let i = 0; i < intMultipleFive; i++) {
+        if (filteredCells.value[i]) {
+          arr.push(filteredCells.value[i]);
+        } else {
+          arr.push({ id: null });
+        }
+      }
+
+      return arr;
+    }
+
+    return Math.floor((filteredCells.value.length / 5) * 5);
+  }
+
   return emptyCells.value.map((item, index) =>
     filteredCells.value[index]?.id ? filteredCells.value[index] : item
   );
 });
 
-const route = useRoute();
-onMounted(async () => {
-  const caseNumber = route.query.caseNumber;
-  const result = await getBackpackItems(caseNumber).then(
-    async (res) => await res.json()
-  );
-  const inventortyItems = result.inventory;
-
-  backpackCells.value = inventortyItems;
-  startCooldownInterval(inventortyItems);
-});
-
 let cooldownsMap = ref(new Map());
-
 const getCounter = (distance) => {
   if (distance / 1000 <= 60) {
     return `${dayjs(distance).format("s")}s`;
@@ -104,17 +102,28 @@ const startCooldownInterval = (list) => {
   }, 1000);
 };
 
-const getCooldownRemaining = (item) => {
-  if (!item || !item?.cooldown) {
+function getCooldownRemaining(item: Product): string | null {
+  if (!item || (item && !item.cooldown)) {
     return null;
   }
 
   return cooldownsMap.value.get(item.id)?.value ?? null;
-};
-
-function getName(item) {
-  return item.name;
 }
+function fillCells() {
+  for (let i = 0; i < 40; i++) {
+    emptyCells.value.push({ id: null });
+  }
+}
+
+const route = useRoute();
+
+onMounted(async () => {
+  const caseNumber = route.query.caseNumber;
+  const result = await getInventoryState(`case=${caseNumber}`);
+  const inventortyItems = result.inventory;
+  backpackCells.value = inventortyItems;
+  startCooldownInterval(inventortyItems);
+});
 </script>
 
 <template>
@@ -125,61 +134,23 @@ function getName(item) {
       <div class="tabs-item close"><IconClose /></div>
     </div>
     <div class="tabs__content">
+      <!-- Filters Aside -->
       <BackpackFilters v-model="currentFilter" />
       <div class="backpack__inventory">
+        <!-- Filter Header -->
         <div class="backpack__filters-header">{{ filterTitle }}</div>
-        <div class="backpack__grid">
-          <div
+        <!-- Items -->
+        <div
+          class="backpack__grid"
+          :class="{
+            scrollable: filteredCells.length > 40,
+          }"
+        >
+          <BackpackItem
             v-for="item in mergedCells"
-            class="backpack-item"
-            v-tippy="getName(item)"
-          >
-            <template v-if="item.id">
-              <div
-                class="backpack-item__icon"
-                :style="{
-                  background: `url(
-                    ${item.imageUrl})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                  width: '75px',
-                  height: '75px',
-                }"
-              />
-              <div
-                class="backpack-item__counters"
-                :class="{
-                  'only-count': !item.charges || !item.maxCharges,
-                }"
-              >
-                <div
-                  class="backpack-item__charges"
-                  v-if="item.charges && item.maxCharges"
-                >
-                  {{ item.charges }}/{{ item.maxCharges }}
-                </div>
-
-                <div class="backpack-item__count single" v-if="item.count">
-                  x{{ item.count }}
-                </div>
-              </div>
-              <div
-                class="backpack-item__shine"
-                :class="{ [item.type]: true }"
-              />
-
-              <div
-                class="backpack-item__loading-overlay"
-                v-if="getCooldownRemaining(item)"
-              >
-                <IconCooldown class="backpack-item__cooldown-icon" />
-                <div class="backpack-item__cooldown-timer">
-                  {{ getCooldownRemaining(item) }}
-                </div>
-              </div>
-            </template>
-          </div>
+            :item="item"
+            :remaining="getCooldownRemaining(item)"
+          />
         </div>
       </div>
     </div>
@@ -230,6 +201,7 @@ function getName(item) {
 }
 
 .tabs__content {
+  background-color: #242223;
   display: flex;
   flex: 1;
   width: 100%;
@@ -251,114 +223,16 @@ function getName(item) {
 }
 
 .backpack__grid {
-  margin: 0px 15px;
+  margin: 0px 5px;
+  padding: 0 5px;
   display: grid;
   grid-template-columns: repeat(5, 93px);
   grid-auto-rows: 93px;
-  background-color: #1a1a1a;
+  overflow: hidden;
+}
+
+.backpack__grid.scrollable {
+  max-height: 750px;
   overflow-y: scroll;
-}
-
-.backpack-item {
-  position: relative;
-  border: 1px solid #454545;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.backpack-item__icon {
-  position: relative;
-  z-index: 2;
-  display: block;
-  background-size: "cover";
-  background-position: "center";
-  background-repeat: "no-repeat";
-  width: "100%";
-  height: "100%";
-}
-
-.backpack-item__counters {
-  z-index: 3;
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 2px;
-}
-
-.backpack-item__counters.only-count {
-  flex-direction: column-reverse;
-}
-
-.backpack-item__count {
-  color: #ffffff;
-  font-size: 17px;
-  font-weight: 500;
-  font-family: "JetBrains Mono", monospace;
-  align-self: flex-end;
-}
-
-.backpack-item__charges {
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 500;
-  font-family: "JetBrains Mono", monospace;
-  align-self: flex-start;
-}
-
-.backpack-item__shine {
-  z-index: 1;
-  display: block;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-}
-
-.backpack-item__shine.weapon {
-  background: radial-gradient(
-      59.14% 59.14% at 50% 50%,
-      #7f59ce 0%,
-      rgba(127, 89, 206, 0) 100%
-    ),
-    #1a1a1a;
-}
-.backpack-item__shine.armor {
-  background: radial-gradient(
-      59.14% 59.14% at 50% 50%,
-      #367cce 0%,
-      rgba(0, 95, 206, 0) 100%
-    ),
-    #1a1a1a;
-}
-
-.backpack-item__loading-overlay {
-  z-index: 4;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: brightness(37%);
-}
-.backpack-item__cooldown-timer {
-  color: #fff;
-  text-align: center;
-  font-family: "Archivo Black", sans-serif;
-  font-weight: 400;
 }
 </style>

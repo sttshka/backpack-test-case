@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { Filter, FilterType, filterTabs } from "../types/handbooks";
+import { Filter, ItemType, filterTabs } from "../types/handbooks";
 
 export interface Props {
-  modelValue: FilterType;
+  modelValue: ItemType;
 }
 const emit = defineEmits(["update:modelValue"]);
 const props = withDefaults(defineProps<Props>(), {
@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<Props>(), {
 const items: Filter[] = filterTabs;
 
 const checkCurrentItem = ({ code }) => code === props.modelValue;
-const handleSelectFilter = (value: FilterType): void => {
+const handleSelectFilter = (value: ItemType): void => {
   emit("update:modelValue", value);
 };
 </script>
@@ -44,6 +44,7 @@ const handleSelectFilter = (value: FilterType): void => {
   gap: 33px;
   padding: 16px;
   color: #ffffff;
+  overflow: hidden;
 }
 
 .backpack__filters-item {

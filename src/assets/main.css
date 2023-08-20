@@ -5,6 +5,7 @@
   font-weight: normal;
 }
 
+/* tooltip */
 .tippy-box {
   background: #1a1a1a;
   border: 2px solid #6c6c6c;
@@ -19,6 +20,27 @@
   transition: opacity 0.1s;
 }
 
-.tippy-content {
-  /* padding: 7px 12px !important; */
+/* scrollbar */
+.c {
+  height: 200vh;
+  width: 960px;
+  margin: auto;
+  max-width: 95%;
+}
+
+::-webkit-scrollbar-track {
+  border: 1px solid #454545;
+  width: 10px;
+  background-color: #242223;
+}
+
+::-webkit-scrollbar {
+  border: 1px solid #454545;
+
+  width: 3px;
+  background-color: #d9d9d9;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #d9d9d9;
 }
