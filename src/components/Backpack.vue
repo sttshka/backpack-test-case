@@ -1,13 +1,22 @@
 <script setup lang="ts">
+import { computed, ref } from "vue";
+import type { Ref } from "vue";
 import IconClose from "./icons/IconClose.vue";
-import IconArmor from "./icons/IconArmor.vue";
-import IconItemsAll from "./icons/IconItemsAll.vue";
-import IconWeapons from "./icons/IconWeapons.vue";
-import IconMisc from "./icons/IconMisc.vue";
 import IconCooldown from "./icons/IconCooldown.vue";
+
+import BackpackFilters from "./BackpackFilters.vue";
+import { FilterType, filterTabs } from "../helpers/handbooks";
+
+const currentFilter: Ref<FilterType> = ref("all");
+
+const filterTitle = computed(
+  () =>
+    filterTabs.find((tab) => tab.code === currentFilter.value)?.title ?? "Пусто"
+);
 </script>
 
 <template>
+  {{ currentFilter }}
   <div class="backpack">
     <div class="tabs">
       <div class="tabs-item active">Backpack</div>
@@ -15,14 +24,9 @@ import IconCooldown from "./icons/IconCooldown.vue";
       <div class="tabs-item close"><IconClose /></div>
     </div>
     <div class="tabs__content">
-      <div class="backpack__filters">
-        <IconItemsAll />
-        <IconArmor />
-        <IconWeapons />
-        <IconMisc />
-      </div>
+      <BackpackFilters v-model="currentFilter" />
       <div class="backpack__inventory">
-        <div class="backpack__filters-header">all items</div>
+        <div class="backpack__filters-header">{{ filterTitle }}</div>
         <div class="backpack__grid">
           <div v-for="i in 50" class="backpack-item">
             <div
@@ -103,19 +107,6 @@ import IconCooldown from "./icons/IconCooldown.vue";
   flex: 1;
   width: 100%;
   height: 100%;
-}
-
-.backpack__filters {
-  width: 100%;
-  max-width: fit-content;
-  max-height: min-content;
-  background-color: #393839;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: start;
-  gap: 33px;
-  padding: 16px;
 }
 
 .backpack__inventory {

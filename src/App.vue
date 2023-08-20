@@ -5,5 +5,5 @@ import Backpack from "./components/Backpack.vue";
 
 <template>
   <Backpack />
-  <RouterView />
+  <!-- <RouterView /> -->
 </template>
