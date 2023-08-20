@@ -119,6 +119,7 @@ const route = useRoute();
 
 onMounted(async () => {
   const caseNumber = route.query.caseNumber;
+  if (!caseNumber) return null;
   const result = await getInventoryState(`case=${caseNumber}`);
   const inventortyItems = result.inventory;
   backpackCells.value = inventortyItems;
