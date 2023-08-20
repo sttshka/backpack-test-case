@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Filter, FilterType, filterTabs } from "../helpers/handbooks";
+import { Filter, FilterType, filterTabs } from "../types/handbooks";
 
 export interface Props {
   modelValue: FilterType;

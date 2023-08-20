@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import dayjs from "dayjs";
+import { computed, onMounted, ref } from "vue";
 import type { Ref } from "vue";
 import IconClose from "./icons/IconClose.vue";
 import IconCooldown from "./icons/IconCooldown.vue";
 
 import BackpackFilters from "./BackpackFilters.vue";
-import { FilterType, filterTabs } from "../helpers/handbooks";
+import { FilterType, filterTabs } from "../types/handbooks";
+import { useRoute, useRouter } from "vue-router";
 
 const currentFilter: Ref<FilterType> = ref("all");
 
@@ -13,10 +15,105 @@ const filterTitle = computed(
   () =>
     filterTabs.find((tab) => tab.code === currentFilter.value)?.title ?? "Пусто"
 );
+
+const API_URL =
+  "https://us-central1-seven-seven-bit-inhouse-helper.cloudfunctions.net/vueDevTestTask-getInventoryState";
+async function getBackpackItems(caseNumber) {
+  return fetch(`${API_URL}?case=${caseNumber}`);
+}
+
+const backpackCells = ref([]);
+
+const emptyCells = ref([]);
+fillCells();
+function fillCells() {
+  for (let i = 0; i < 40; i++) {
+    emptyCells.value.push({ id: null });
+  }
+}
+
+const filteredCells = computed(() => {
+  if (currentFilter.value === "all") {
+    return backpackCells.value;
+  } else {
+    return backpackCells.value.filter(
+      (item) => item.type === currentFilter.value
+    );
+  }
+});
+
+const mergedCells = computed(() => {
+  return emptyCells.value.map((item, index) =>
+    filteredCells.value[index]?.id ? filteredCells.value[index] : item
+  );
+});
+
+const route = useRoute();
+onMounted(async () => {
+  const caseNumber = route.query.caseNumber;
+  const result = await getBackpackItems(caseNumber).then(
+    async (res) => await res.json()
+  );
+  const inventortyItems = result.inventory;
+
+  backpackCells.value = inventortyItems;
+  startCooldownInterval(inventortyItems);
+});
+
+let cooldownsMap = ref(new Map());
+
+const getCounter = (distance) => {
+  if (distance / 1000 <= 60) {
+    return `${dayjs(distance).format("s")}s`;
+  } else {
+    return `${dayjs(distance).format("m:ss")}m`;
+  }
+};
+
+const startCooldownInterval = (list) => {
+  const itemsWithCooldown = list.filter((item) => item.cooldown);
+
+  cooldownsMap.value = new Map(
+    itemsWithCooldown.map((item) => [
+      item.id,
+      {
+        cooldown: item.cooldown,
+        value: getCounter(item.cooldown - new Date().getTime()),
+      },
+    ])
+  );
+
+  const interval = setInterval(() => {
+    const now = new Date().getTime();
+    cooldownsMap.value.forEach(({ cooldown }, key) => {
+      const distance = cooldown - now;
+
+      if (distance <= 0) {
+        cooldownsMap.value.delete(key);
+        return null;
+      }
+
+      cooldownsMap.value.set(key, {
+        ...cooldownsMap.value.get(key),
+        value: getCounter(distance),
+      });
+    });
+    if (cooldownsMap.value.size === 0) {
+      clearInterval(interval);
+    }
+  }, 1000);
+};
+
+const getCooldownRemaining = (item) => {
+  if (!item || !item?.cooldown) {
+    return null;
+  }
+
+  return cooldownsMap.value.get(item.id)?.value ?? null;
+};
 </script>
 
 <template>
-  {{ currentFilter }}
   <div class="backpack">
     <div class="tabs">
       <div class="tabs-item active">Backpack</div>
@@ -28,30 +125,52 @@ const filterTitle = computed(
       <div class="backpack__inventory">
         <div class="backpack__filters-header">{{ filterTitle }}</div>
         <div class="backpack__grid">
-          <div v-for="i in 50" class="backpack-item">
-            <div
-              class="backpack-item__icon"
-              :style="{
-                background: `url(
-                  'https://firebasestorage.googleapis.com/v0/b/seven-seven-bit-inhouse-helper.appspot.com/o/energy_potion.png?alt=media'
-                )`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                width: '75px',
-                height: '75px',
-              }"
-            />
-            <div class="backpack-item__counters">
-              <div class="backpack-item__charges">3/3</div>
-              <div class="backpack-item__count">x50</div>
-            </div>
-            <div class="backpack-item__shine weapon armor"></div>
+          <div v-for="item in mergedCells" class="backpack-item">
+            <template v-if="item.id">
+              <div
+                class="backpack-item__icon"
+                :style="{
+                  background: `url(
+                    ${item.imageUrl})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  width: '75px',
+                  height: '75px',
+                }"
+              />
+              <div
+                class="backpack-item__counters"
+                :class="{
+                  'only-count': !item.charges || !item.maxCharges,
+                }"
+              >
+                <div
+                  class="backpack-item__charges"
+                  v-if="item.charges && item.maxCharges"
+                >
+                  {{ item.charges }}/{{ item.maxCharges }}
+                </div>
 
-            <div class="backpack-item__loading-overlay">
-              <IconCooldown class="backpack-item__cooldown-icon" />
-              <div class="backpack-item__cooldown-timer">100s</div>
-            </div>
+                <div class="backpack-item__count single" v-if="item.count">
+                  x{{ item.count }}
+                </div>
+              </div>
+              <div
+                class="backpack-item__shine"
+                :class="{ [item.type]: true }"
+              />
+
+              <div
+                class="backpack-item__loading-overlay"
+                v-if="getCooldownRemaining(item)"
+              >
+                <IconCooldown class="backpack-item__cooldown-icon" />
+                <div class="backpack-item__cooldown-timer">
+                  {{ getCooldownRemaining(item) }}
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -167,6 +286,10 @@ const filterTitle = computed(
   padding: 2px;
 }
 
+.backpack-item__counters.only-count {
+  flex-direction: column-reverse;
+}
+
 .backpack-item__count {
   color: #ffffff;
   font-size: 17px;
@@ -174,6 +297,7 @@ const filterTitle = computed(
   font-family: "JetBrains Mono", monospace;
   align-self: flex-end;
 }
+
 .backpack-item__charges {
   color: #ffffff;
   font-size: 16px;

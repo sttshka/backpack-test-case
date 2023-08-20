@@ -1,7 +1,9 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import Backpack from "../components/Backpack.vue";
+</script>
 
 <template>
-  <div></div>
+  <Backpack />
 </template>
 
 <style scoped></style>
