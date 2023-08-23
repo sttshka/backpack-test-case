@@ -48,13 +48,15 @@ const handleSelectFilter = (value: TBackpackItemType): void => {
 }
 
 .backpack__filters-item {
+  transition: all 0.05s linear;
   fill-opacity: 50%;
 }
 
-.backpack__filters-item:hover {
+.backpack__filters-item:hover:not(.active) {
   fill-opacity: 80%;
+  cursor: pointer;
 }
-.backpack__filters-item:active,
+.backpack__filters-item:active:not(.active),
 .backpack__filters-item.active {
   fill-opacity: 100%;
 }

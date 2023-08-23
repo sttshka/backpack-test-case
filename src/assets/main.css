@@ -17,7 +17,7 @@
   color: #969696;
   font-weight: 400;
   text-transform: uppercase;
-  transition: opacity 0.1s;
+  transition: opacity 0.05s linear;
 }
 
 /* scrollbar */
