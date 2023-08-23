@@ -1,19 +1,22 @@
 <script setup lang="ts">
-import IconCooldown from "./icons/IconCooldown.vue";
+import { IBackpackItem, IEmptyBackpackItem } from "../../types";
+import IconCooldown from "../icons/IconCooldown.vue";
 
 import { computed } from "vue";
 
-const props = defineProps({
-  modelValue: String,
-  item: Object,
-  remaining: String,
-});
+interface Props {
+  remaining?: string;
+  item: IBackpackItem | IEmptyBackpackItem;
+}
+
+const props = defineProps<Props>();
 
 const item = computed(() => props.item);
 </script>
 
 <template>
-  <div class="backpack-item" v-tippy="item.name">
+  <!-- For items -->
+  <div v-if="item.id" class="backpack-item" v-tippy="item.name">
     <template v-if="item.id">
       <div
         class="backpack-item__icon"
@@ -54,6 +57,8 @@ const item = computed(() => props.item);
       </div>
     </template>
   </div>
+  <!-- For empty cells -->
+  <div v-else class="backpack-item"></div>
 </template>
 
 <style scoped>

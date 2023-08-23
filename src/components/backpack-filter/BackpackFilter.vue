@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { Filter, ItemType, filterTabs } from "../types/handbooks";
+import { filterItems } from "../../handbooks";
+import { IBackpackFilter } from "../../types";
+import { TBackpackItemType } from "../../types";
 
-export interface Props {
-  modelValue: ItemType;
-}
 const emit = defineEmits(["update:modelValue"]);
-const props = withDefaults(defineProps<Props>(), {
+
+const props = withDefaults(defineProps<{ modelValue: TBackpackItemType }>(), {
   modelValue: "all",
 });
 
-const items: Filter[] = filterTabs;
+const items: IBackpackFilter[] = filterItems;
 
 const checkCurrentItem = ({ code }) => code === props.modelValue;
-const handleSelectFilter = (value: ItemType): void => {
+const handleSelectFilter = (value: TBackpackItemType): void => {
   emit("update:modelValue", value);
 };
 </script>
